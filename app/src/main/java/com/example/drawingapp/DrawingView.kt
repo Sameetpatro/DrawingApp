@@ -40,10 +40,17 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs){
 
 
     //icon is pending here
-    private fun undo(paths: MutableList<FingerPath>){
+    fun undo(){
         if(!paths.isEmpty()){
             paths.removeAt(paths.size - 1)
             invalidate() // reflect back to screen
+        }
+    }
+
+    fun deleteAll(){
+        if(!paths.isEmpty()){
+            paths.clear()
+            invalidate()
         }
     }
 
@@ -70,9 +77,9 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs){
                 //fires continuously until user is still touching screen
             }
             MotionEvent.ACTION_UP ->{
-                canvas.drawPath(drawPath, drawPaint) //commit path to bitmap
+//                canvas.drawPath(drawPath, drawPaint) //commit path to bitmap
+                paths.add(drawPath)
                 drawPath = FingerPath(color, brushSize)
-                paths.add(FingerPath(color, brushSize))
                 //when user lifts his finger
             }
             else -> return false
@@ -86,6 +93,13 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs){
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         canvas?.drawBitmap(canvasBitmap, 0f,0f,drawPaint) //creates a canvas before drawing
+
+        for (fp in paths) {
+            drawPaint.strokeWidth = fp.brushThickness
+            drawPaint.color = fp.color
+            canvas.drawPath(fp, drawPaint)
+        }
+
         if(!drawPath.isEmpty){
             drawPaint.strokeWidth = drawPath.brushThickness
             drawPaint.color = drawPath.color
@@ -116,5 +130,5 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs){
         drawPaint.strokeWidth = brushSize
     }
 
-    internal inner class FingerPath(var color: Int, var brushThickness: Float) : Path()
+    inner class FingerPath(var color: Int, var brushThickness: Float) : Path()
 }

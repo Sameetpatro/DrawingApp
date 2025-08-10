@@ -20,6 +20,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     private lateinit var brushImageButton: ImageButton
     private lateinit var colorPalatteButton: ImageButton
     private lateinit var undoButton: ImageButton
+    private lateinit var deleteAllButton: ImageButton
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,15 +31,25 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+        drawingView = findViewById<DrawingView>(R.id.drawing_view)
         brushImageButton = findViewById<ImageButton>(R.id.btn_brush_size)
         colorPalatteButton = findViewById<ImageButton>(R.id.btn_color_palette)
-        drawingView = findViewById<DrawingView>(R.id.drawing_view)
-
+        undoButton = findViewById<ImageButton>(R.id.btn_undo)
+        deleteAllButton = findViewById<ImageButton>(R.id.btn_delete_all)
 
         colorPalatteButton.setOnClickListener { showColorPalatteDialog() }
         brushImageButton.setOnClickListener { showBrushSizeDialoge() }
         drawingView.changeBrushSize(25.toFloat())
+
+        undoButton.setOnClickListener {
+            drawingView.undo()
+        }
+
+        deleteAllButton.setOnClickListener {
+            drawingView.deleteAll()
+        }
     }
+
 
     private fun showColorPalatteDialog() {
         val colorPalatteDialog = Dialog(this@MainActivity)
