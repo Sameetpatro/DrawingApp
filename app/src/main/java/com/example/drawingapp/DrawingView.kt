@@ -53,11 +53,13 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs){
         when(event?.action){
             //fired when user put finger on screen
             MotionEvent.ACTION_DOWN ->{
-                drawPath.color = color
-                drawPath.brushThickness = brushSize.toFloat()
-
-                drawPath.reset() // resetting path before we see initial point
+                drawPath = FingerPath(color, brushSize) //gpt wrote this
                 drawPath.moveTo(touchX!!,touchY!!)
+
+//                drawPath.brushThickness = brushSize.toFloat()
+//                drawPath.color = color
+//                drawPath.reset() // resetting path before we see initial point
+
             }
 
             //this event will be fired when the user starts to move his finger
@@ -100,6 +102,11 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs){
         brushSize = 20.toFloat()
         canvasPaint = Paint(Paint.DITHER_FLAG) //DITHER is a color blending technique, it mix nearby  pixels to create smoother transition for change in color
 
+    }
+
+    fun changeColor(newColor: Int){
+        color = newColor
+        drawPaint.color = color
     }
 
     fun changeBrushSize(newSize: Float){
