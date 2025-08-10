@@ -1,0 +1,22 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Background track with rounded border -->
+    <item android:id="@android:id/background">
+        <shape android:shape="rectangle">
+            <size android:height="10dp" /> <!-- Same height for both -->
+            <solid android:color="#F3DFF0" />
+            <stroke android:width="2dp" android:color="#FFB6C1" />
+            <corners android:radius="20dp" /> <!-- Rounded border -->
+        </shape>
+    </item>
+
+    <!-- Progress bar with rounded corners -->
+    <item android:id="@android:id/progress">
+        <clip>
+            <shape android:shape="rectangle">
+                <size android:height="4dp" />
+                <solid android:color="#FF5F8F" />
+                <corners android:radius="20dp" />
+            </shape>
+        </clip>
+    </item>
+</layer-list>
