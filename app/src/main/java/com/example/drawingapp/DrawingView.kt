@@ -8,7 +8,9 @@ import android.graphics.Paint
 import android.util.AttributeSet
 import android.view.View
 import android.graphics.Path
+import android.util.TypedValue
 import android.view.MotionEvent
+import org.w3c.dom.Text
 
 class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs){
 
@@ -37,7 +39,7 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs){
     }
 
 
-
+    //icon is pending here
     private fun undo(paths: MutableList<FingerPath>){
         if(!paths.isEmpty()){
             paths.removeAt(paths.size - 1)
@@ -98,6 +100,13 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs){
         brushSize = 20.toFloat()
         canvasPaint = Paint(Paint.DITHER_FLAG) //DITHER is a color blending technique, it mix nearby  pixels to create smoother transition for change in color
 
+    }
+
+    fun changeBrushSize(newSize: Float){
+        brushSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,newSize,resources.displayMetrics)
+        //Typedvalue function makes sure the size of brush is same over all devices even if they have different resolution
+        //resources.displaymetrics is the user device screen density
+        drawPaint.strokeWidth = brushSize
     }
 
     internal inner class FingerPath(var color: Int, var brushThickness: Float) : Path()
