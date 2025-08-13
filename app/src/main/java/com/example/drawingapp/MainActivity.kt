@@ -1,19 +1,38 @@
 package com.example.drawingapp
 
+import android.Manifest
+import android.app.Activity
 import android.app.Dialog
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.graphics.Color
-import android.media.Image
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.ImageButton
 import android.widget.SeekBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.registerForActivityResult
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import org.w3c.dom.Text
 import androidx.core.graphics.toColorInt
+import com.example.drawingapp.databinding.ActivityMainBinding
+import android.net.Uri
+import android.graphics.BitmapFactory
+import android.graphics.drawable.BitmapDrawable
+
+
+
 
 class MainActivity : AppCompatActivity(), View.OnClickListener {
     private lateinit var drawingView: DrawingView
@@ -21,6 +40,9 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     private lateinit var colorPalatteButton: ImageButton
     private lateinit var undoButton: ImageButton
     private lateinit var deleteAllButton: ImageButton
+    private lateinit var importButton: ImageButton
+    private lateinit var binding: ActivityMainBinding
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,10 +58,17 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         colorPalatteButton = findViewById<ImageButton>(R.id.btn_color_palette)
         undoButton = findViewById<ImageButton>(R.id.btn_undo)
         deleteAllButton = findViewById<ImageButton>(R.id.btn_delete_all)
+        importButton = findViewById<ImageButton>(R.id.btn_addfile)
 
         colorPalatteButton.setOnClickListener { showColorPalatteDialog() }
         brushImageButton.setOnClickListener { showBrushSizeDialoge() }
         drawingView.changeBrushSize(25.toFloat())
+        importButton.setOnClickListener{
+            checkPermissionAndOpenGallery()
+//            Toast.makeText(this@MainActivity, "Import Button clicked", Toast.LENGTH_LONG).show()
+//            checkAndRequestStoragePermission()
+        }
+
 
         undoButton.setOnClickListener {
             drawingView.undo()
@@ -165,7 +194,67 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         brushDialog.show()
     }
 
-    override fun onClick(view: View?) {
+    //importing an image
 
+//    private val pickImageLauncher =
+//        registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+//            uri?.let {
+//                try {
+//                    val inputStream = contentResolver.openInputStream(it)
+//                    val bitmap = BitmapFactory.decodeStream(inputStream)
+//                    inputStream?.close()
+//
+//                    // Set bitmap as background of DrawingView
+//                    binding.drawingView.background = BitmapDrawable(resources, bitmap)
+//                } catch (e: Exception) {
+//                    e.printStackTrace()
+//                    Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show()
+//                }
+//            }
+//        }
+
+
+    private val requestPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (isGranted) {
+                openGallery()
+            } else {
+                Toast.makeText(this, "Permission denied", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+    private fun checkPermissionAndOpenGallery() {
+        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.READ_MEDIA_IMAGES
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+
+        if (ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED) {
+            openGallery()
+        } else {
+            requestPermissionLauncher.launch(permission)
+        }
     }
+    private val pickImageLauncher =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+            uri?.let {
+                drawingView.setImageBitmapFromUri(it, this)
+            }
+        }
+
+
+
+    private fun openGallery() {
+        pickImageLauncher.launch("image/*")
+    }   
+
+
+
+
+    override fun onClick(view: View?) {
+    }
+
+
+
 }

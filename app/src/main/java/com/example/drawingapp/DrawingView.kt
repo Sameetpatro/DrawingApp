@@ -8,9 +8,13 @@ import android.graphics.Paint
 import android.util.AttributeSet
 import android.view.View
 import android.graphics.Path
+import android.net.Uri
 import android.util.TypedValue
 import android.view.MotionEvent
 import org.w3c.dom.Text
+import android.graphics.BitmapFactory
+
+
 
 class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs){
 
@@ -34,8 +38,15 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs){
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
-        canvasBitmap = Bitmap.createBitmap(w,h, Bitmap.Config.ARGB_8888) //this works when user zooms or changes its orientation
-        canvas = Canvas(canvasBitmap)
+//        canvasBitmap = Bitmap.createBitmap(w,h, Bitmap.Config.ARGB_8888) //this works when user zooms or changes its orientation
+//        canvas = Canvas(canvasBitmap)
+
+        if (!::canvasBitmap.isInitialized) {
+            canvasBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+            canvas = Canvas(canvasBitmap)
+        }
+
+
     }
 
 
@@ -128,6 +139,22 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs){
         //Typedvalue function makes sure the size of brush is same over all devices even if they have different resolution
         //resources.displaymetrics is the user device screen density
         drawPaint.strokeWidth = brushSize
+    }
+
+    //importing image
+
+    fun setImageBitmapFromUri(uri: Uri, context: Context) {
+        val inputStream = context.contentResolver.openInputStream(uri)
+        val bitmap = BitmapFactory.decodeStream(inputStream)
+        inputStream?.close()
+
+        if (bitmap != null) {
+            // Resize to match view size
+            val scaledBitmap = Bitmap.createScaledBitmap(bitmap, width, height, true)
+            canvasBitmap = scaledBitmap.copy(Bitmap.Config.ARGB_8888, true)
+            canvas = Canvas(canvasBitmap)
+            invalidate()
+        }
     }
 
     inner class FingerPath(var color: Int, var brushThickness: Float) : Path()
