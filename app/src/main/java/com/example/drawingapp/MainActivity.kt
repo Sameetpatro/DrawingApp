@@ -1,11 +1,12 @@
 package com.example.drawingapp
 
 import android.Manifest
-import android.app.Activity
+import android.app.AlertDialog
 import android.app.Dialog
-import android.content.Intent
+import android.content.ContentValues
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
@@ -15,23 +16,21 @@ import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.result.registerForActivityResult
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import org.w3c.dom.Text
 import androidx.core.graphics.toColorInt
-import com.example.drawingapp.databinding.ActivityMainBinding
 import android.net.Uri
-import android.graphics.BitmapFactory
-import android.graphics.drawable.BitmapDrawable
-
-
+import android.os.Environment
+import android.provider.MediaStore
+import androidx.core.app.ActivityCompat
+import com.example.drawingapp.databinding.ActivityMainBinding
+import java.io.File
+import java.io.FileOutputStream
+import java.io.OutputStream
+import kotlin.apply
 
 
 class MainActivity : AppCompatActivity(), View.OnClickListener {
@@ -41,8 +40,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     private lateinit var undoButton: ImageButton
     private lateinit var deleteAllButton: ImageButton
     private lateinit var importButton: ImageButton
-    private lateinit var binding: ActivityMainBinding
-
+    private lateinit var saveButton: ImageButton
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,14 +57,13 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         undoButton = findViewById<ImageButton>(R.id.btn_undo)
         deleteAllButton = findViewById<ImageButton>(R.id.btn_delete_all)
         importButton = findViewById<ImageButton>(R.id.btn_addfile)
+        saveButton = findViewById<ImageButton>(R.id.btn_save)
 
         colorPalatteButton.setOnClickListener { showColorPalatteDialog() }
         brushImageButton.setOnClickListener { showBrushSizeDialoge() }
         drawingView.changeBrushSize(25.toFloat())
         importButton.setOnClickListener{
             checkPermissionAndOpenGallery()
-//            Toast.makeText(this@MainActivity, "Import Button clicked", Toast.LENGTH_LONG).show()
-//            checkAndRequestStoragePermission()
         }
 
 
@@ -76,6 +73,10 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
         deleteAllButton.setOnClickListener {
             drawingView.deleteAll()
+        }
+
+        saveButton.setOnClickListener {
+            showConfirmation()
         }
     }
 
@@ -196,24 +197,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     //importing an image
 
-//    private val pickImageLauncher =
-//        registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-//            uri?.let {
-//                try {
-//                    val inputStream = contentResolver.openInputStream(it)
-//                    val bitmap = BitmapFactory.decodeStream(inputStream)
-//                    inputStream?.close()
-//
-//                    // Set bitmap as background of DrawingView
-//                    binding.drawingView.background = BitmapDrawable(resources, bitmap)
-//                } catch (e: Exception) {
-//                    e.printStackTrace()
-//                    Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show()
-//                }
-//            }
-//        }
-
-
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (isGranted) {
@@ -242,19 +225,89 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                 drawingView.setImageBitmapFromUri(it, this)
             }
         }
-
-
-
     private fun openGallery() {
         pickImageLauncher.launch("image/*")
     }   
 
+    //exporting image to gallery
+
+    private fun showConfirmation(){
+        AlertDialog.Builder(this).setTitle("Confirmation Message")
+            .setMessage("Do you want to save this image")
+            .setPositiveButton("yes") { _ , _->
+                saveDrawing()
+            }
+            .setNegativeButton("No",null)
+            .show()
+
+    }
 
 
+    private fun saveDrawing() {
+        val bitmap = getBitmapFromView(drawingView)
 
-    override fun onClick(view: View?) {
+        if (bitmap.width == 0 || bitmap.height == 0) {
+            Toast.makeText(this, "Nothing to save!", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val filename = "Drawing_${System.currentTimeMillis()}.png"
+        var fos: OutputStream? = null
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val contentValues = ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
+                    put(MediaStore.MediaColumns.MIME_TYPE, "image/png")
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/MyDrawingApp")
+                }
+                val imageUri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+                if (imageUri != null) {
+                    fos = contentResolver.openOutputStream(imageUri)
+                } else {
+                    Toast.makeText(this, "Failed to create file", Toast.LENGTH_SHORT).show()
+                    return
+                }
+            } else {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    != PackageManager.PERMISSION_GRANTED
+                ) {
+                    ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 101)
+                    return
+                }
+                val imagesDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "MyDrawingApp")
+                if (!imagesDir.exists()) {
+                    imagesDir.mkdirs()
+                }
+                val image = File(imagesDir, filename)
+                fos = FileOutputStream(image)
+            }
+
+            fos?.use {
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
+                Toast.makeText(this, "Saved in MyDrawingApp folder", Toast.LENGTH_SHORT).show()
+            }
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this, "Error saving image: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun getBitmapFromView(view: View): Bitmap {
+        val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val bgDrawable = view.background
+        if (bgDrawable != null) {
+            bgDrawable.draw(canvas)
+        } else {
+            canvas.drawColor(Color.WHITE)
+        }
+        view.draw(canvas)
+        return bitmap
     }
 
 
 
+    override fun onClick(view: View?) {}
 }
